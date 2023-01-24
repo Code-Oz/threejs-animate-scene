@@ -1,15 +1,30 @@
 import "./style.css";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { sizes } from "./config";
 import { createGUI } from "./debug-gui/create-gui";
 import { OBJECT_COUNTS } from "./config";
 import { createObjects } from "./objects/create-objects";
 import { animateObject } from "./objects/animate-objects";
+import {
+  createCamera,
+  updateCamera,
+  updateCameraWhenResizeEvent,
+} from "./camera/camera";
 /**
  * Canvas
  */
 const canvas = document.querySelector("canvas.webgl");
+
+let windowHalfX = window.innerWidth / 2;
+let windowHalfY = window.innerHeight / 2;
+let mouseX = 0;
+let mouseY = 0;
+
+function onDocumentMouseMove(event) {
+  mouseX = (event.clientX - windowHalfX) / 100;
+  mouseY = (event.clientY - windowHalfY) / 100;
+}
+document.addEventListener("mousemove", onDocumentMouseMove);
 
 /**
  * Scene
@@ -24,15 +39,8 @@ scene.add(...objects);
 /**
  * Camera
  */
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height);
-camera.position.z = 3;
+const camera = createCamera(sizes);
 scene.add(camera);
-
-/**
- * Controls
- */
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
 
 /**
  * GUI
@@ -54,8 +62,7 @@ window.addEventListener("resize", () => {
   sizes.height = window.innerHeight;
 
   // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
+  updateCameraWhenResizeEvent(camera, sizes);
 
   // Update renderer
   renderer.setSize(sizes.width, sizes.height);
@@ -66,11 +73,11 @@ const clock = new THREE.Clock();
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
 
-  // Update controls
-  controls.update();
-
   // Render
   renderer.render(scene, camera);
+
+  // Update Camera
+  updateCamera(camera, { mouseX, mouseY }, scene.position);
 
   // Animate Objects
   animateObject(objects, elapsedTime);
